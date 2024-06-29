@@ -1,16 +1,29 @@
-mod dope_vector;
+mod instruction_information;
 mod instructions;
-use crate::dope_vector::{DopeVector, R_TYPE, I_TYPE, J_TYPE};
-use crate::instructions::INSTRUCTIONS;
+mod assembly_utils;
+mod parser;
+mod nma;
 
-use std::collections::HashMap;
+use std::io;
+use std::fs;
 
-fn main() {
-    let mut table: HashMap<&'static str, &DopeVector> = HashMap::new();
+use crate::nma::assemble;
 
-    for instruction in &INSTRUCTIONS {
-        table.insert(instruction.mnemonic, instruction);
-    }
+fn main(){
+    // Get filename
+    let mut input = String::new();
+    let filename: String = io::stdin().read_line(&mut input).expect("Failed to read entered filename.").to_string();
 
-    dbg!(table.get("add"));
+    // Get file contents as string
+    let file_contents = fs::read_to_string(filename.trim()).expect("Failed to read file.");
+
+    // Invoke the assembler on those file contents
+    match assemble(&file_contents){
+        Ok(_assembled_vectors) => {
+            // Write et_rel to file with sections
+        },
+        Err(_) => {
+            panic!("A fatal error occurred during assembly.");
+        }
+    };
 }
