@@ -1,4 +1,8 @@
 // This file contains the line parser for the assembler.
+
+use crate::name_constants::INSTRUCTIONS;
+
+#[derive(Debug)]
 pub enum ComponentType {
     Instruction,
     Register,
@@ -9,14 +13,22 @@ pub enum ComponentType {
     Identifier,
 }
 
+#[derive(Debug)]
 pub struct LineComponent<'a> {
     pub(crate) component_type: ComponentType,
     pub(crate) content: &'a str,
 }
 
 // The intention with this parsing is to split each line into its individual components. 
-pub fn parse(line: &str) -> Result<Vec<LineComponent>, &'static str> {
+pub fn parse<'a>(line: &'a str) -> Result<Vec<LineComponent<'a>>, &'static str> {
     let mut found_components: Vec<LineComponent> = vec!();
+
+    let mut mnemonics: Vec<&str> = vec!();
+
+    // Retrieve instruction mnemonics from data file
+    for instruction in &INSTRUCTIONS {
+        mnemonics.push(instruction.mnemonic);
+    }
 
     // Removing leading whitespace allows first char processing
     let trimmed_line = line.trim();
@@ -48,7 +60,16 @@ pub fn parse(line: &str) -> Result<Vec<LineComponent>, &'static str> {
             };
             found_components.push(register);
             continue;
-        } else if is_valid_immediate(word) {
+        } else if word.starts_with('.') {
+            let directive: LineComponent = LineComponent{
+                component_type: ComponentType::Directive,
+                content: word
+            };
+            found_components.push(directive);
+            continue;
+        } if word.starts_with('#'){
+            break;
+        } else if let Ok(_immediate) = base_parse(word) {
             let immediate: LineComponent = LineComponent{
                 component_type: ComponentType::Immediate,
                 content: word
@@ -56,23 +77,54 @@ pub fn parse(line: &str) -> Result<Vec<LineComponent>, &'static str> {
             found_components.push(immediate);
             continue;
         } else if word.chars().all( |c| c.is_alphanumeric()) {
-            let identifier: LineComponent = LineComponent{
-                component_type: ComponentType::Identifier,
-                content: word,
-            };
-            found_components.push(identifier);
-            continue;
-        } else if word.chars().all( |c| c.is_ascii_lowercase()) {
-            todo!();
-            // Determine difference between used label and instruction. Likely need to match against set of impl instructions.
+            // Test to see if found alphanumeric string is an instruction mnemonic
+            if mnemonics.contains(&word) {
+                let instruction: LineComponent = LineComponent{
+                    component_type: ComponentType::Instruction,
+                    content: word,
+                };
+                found_components.push(instruction);
+                continue;
+            } else {
+                let identifier: LineComponent = LineComponent{
+                    component_type: ComponentType::Identifier,
+                    content: word,
+                };
+                found_components.push(identifier);
+                continue;
+            }
         }
     }
 
-
-
+    // Collect any trailing inline comment
+    if let Some(index) = trimmed_line.find('#') {
+        // Collect the entire inline comment for debugging purposes
+        let collected_comment: &'a str = trimmed_line[index..].trim();
+        let inline_comment: LineComponent = LineComponent{
+            component_type: ComponentType::Comment,
+            content: collected_comment,
+        };
+        found_components.push(inline_comment);
+    } 
+    
     return Ok(found_components);
 }
 
-fn is_valid_immediate(_token: &str) -> bool {
-    todo!();
+// Parses literals in hex, bin, oct, and decimal.
+pub fn base_parse(input: &str) -> Result<u32, &'static str> {
+    if input.starts_with("0x") {
+        // Hexadecimal
+        u32::from_str_radix(&input[2..], 16).map_err(|_| "Failed to parse as hexadecimal")
+    } else if input.starts_with("0b") {
+        // Binary
+        u32::from_str_radix(&input[2..], 2).map_err(|_| "Failed to parse as binary")
+    } else if input.starts_with('0') && input.len() > 1 {
+        // Octal
+        u32::from_str_radix(&input[1..], 8).map_err(|_| "Failed to parse as octal")
+    } else {
+        // Decimal
+        input
+            .parse::<u32>()
+            .map_err(|_| "Failed to parse as decimal")
+    }
 }

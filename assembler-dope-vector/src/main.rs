@@ -1,5 +1,5 @@
 mod instruction_information;
-mod instructions;
+mod name_constants;
 mod assembly_utils;
 mod parser;
 mod nma;
@@ -12,10 +12,10 @@ use crate::nma::assemble;
 fn main(){
     // Get filename
     let mut input = String::new();
-    let filename: String = io::stdin().read_line(&mut input).expect("Failed to read entered filename.").to_string();
+    let _filename = io::stdin().read_line(&mut input).expect("Failed to read entered filename.");
 
     // Get file contents as string
-    let file_contents = fs::read_to_string(filename.trim()).expect("Failed to read file.");
+    let file_contents = fs::read_to_string(input.trim()).expect("Failed to read file.");
 
     // Invoke the assembler on those file contents
     match assemble(&file_contents){
