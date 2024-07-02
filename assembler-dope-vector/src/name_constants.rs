@@ -1,5 +1,5 @@
 // This file contains the implmented instruction set as a series of dope vectors, as well as the register set.
-use crate::instruction_information::{InstructionInformation, InstructionType};
+use crate::name_structs::{InstructionInformation, InstructionType};
 
 const NUM_OF_IMPL_SECTIONS: usize = 3;
 const NUM_OF_REGISTERS: usize = 32;

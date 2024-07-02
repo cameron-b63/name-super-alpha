@@ -47,12 +47,20 @@ pub fn parse<'a>(line: &'a str) -> Result<Vec<LineComponent<'a>>, &'static str> 
     let mut iterable_tokens = trimmed_line.split_whitespace();
     while let Some(word) = iterable_tokens.next() {
         if word.ends_with(':') {
+            let len = word.len();
+            if len == 1 {
+                return Err("Cannot have an empty label (i.e. just ':')");
+            }
+
+            let identifier = &word[..len - 1]; // Chop off last character of slice
+
             let label: LineComponent = LineComponent{
                 component_type: ComponentType::Label,
-                content: word,
+                content: identifier,
             };
             found_components.push(label);
             continue;
+        
         } else if word.starts_with('$') {
             let register: LineComponent = LineComponent{
                 component_type: ComponentType::Register,
@@ -72,7 +80,7 @@ pub fn parse<'a>(line: &'a str) -> Result<Vec<LineComponent<'a>>, &'static str> 
         } else if let Ok(_immediate) = base_parse(word) {
             let immediate: LineComponent = LineComponent{
                 component_type: ComponentType::Immediate,
-                content: word
+                content: word,
             };
             found_components.push(immediate);
             continue;
